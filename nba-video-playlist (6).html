@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NBA Random Video Playlist Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #1e3c72;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2.5em;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f5f7fa;
+            border-radius: 8px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #333;
+            font-size: 0.9em;
+        }
+        
+        input, select {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2a5298;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #2a5298;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .search-results.active {
+            display: block;
+        }
+        
+        .search-result-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .search-result-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .generate-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .generate-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .clear-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .clear-btn:hover {
+            background: #c0392b;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #666;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2a5298;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            margin-top: 30px;
+        }
+        
+        .video-item {
+            background: #fff;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        
+        .video-item:hover {
+            border-color: #2a5298;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .video-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .video-number {
+            background: #2a5298;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        
+        .video-description {
+            color: #555;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .url-group {
+            margin-top: 10px;
+        }
+        
+        .url-label {
+            font-weight: 600;
+            color: #2a5298;
+            margin-bottom: 5px;
+        }
+        
+        .url-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .url-input {
+            flex: 1;
+            padding: 8px;
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .copy-btn {
+            padding: 8px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .copy-btn:hover {
+            background: #218838;
+        }
+        
+        .error {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2a5298;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏀 NBA Random Video Playlist Generator</h1>
+        
+        <div class="info-box">
+            <strong>Note:</strong> This tool uses the NBA Stats API. Configure your filters below and specify how many random videos you want to generate.
+        </div>
+
+        <div class="warning-box">
+            <strong>Important:</strong> Due to CORS restrictions, the NBA Stats API may not work directly from the browser. The API requires specific headers and may block requests from web browsers. For production use, consider using a backend proxy server or running this through a Python/Node.js environment. This demo shows the structure and parameters needed.
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="playlistSize">Number of Videos:</label>
+                <input type="number" id="playlistSize" value="5" min="1" max="50">
+            </div>
+            
+            <div class="control-group">
+                <label for="playerSearch">Player Search:</label>
+                <div class="search-container">
+                    <input type="text" id="playerSearch" placeholder="Search for a player...">
+                    <div id="playerResults" class="search-results"></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="playerId">Player ID (0 = Any):</label>
+                <input type="text" id="playerId" value="0" placeholder="0 = Any">
+            </div>
+            
+            <div class="control-group">
+                <label for="teamSearch">Team Search:</label>
+                <div class="search-container">
+                    <input type="text" id="teamSearch" placeholder="Search for a team...">
+                    <div id="teamResults" class="search-results"></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="teamId">Team ID (0 = Any):</label>
+                <input type="text" id="teamId" value="0" placeholder="0 = Any">
+            </div>
+            
+            <div class="control-group">
+                <label for="season">Season:</label>
+                <select id="season">
+                    <option value="2025-26">2025-26</option>
+                    <option value="2024-25">2024-25</option>
+                    <option value="2023-24" selected>2023-24</option>
+                    <option value="2022-23">2022-23</option>
+                    <option value="2021-22">2021-22</option>
+                    <option value="2020-21">2020-21</option>
+                    <option value="2019-20">2019-20</option>
+                    <option value="2018-19">2018-19</option>
+                    <option value="2017-18">2017-18</option>
+                    <option value="2016-17">2016-17</option>
+                    <option value="2015-16">2015-16</option>
+                    <option value="2014-15">2014-15</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="seasonType">Season Type:</label>
+                <select id="seasonType">
+                    <option value="Regular Season">Regular Season</option>
+                    <option value="Playoffs">Playoffs</option>
+                    <option value="Pre Season">Pre Season</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="contextMeasure">Context Measure:</label>
+                <select id="contextMeasure">
+                    <option value="FGA">FGA (Field Goal Attempts)</option>
+                    <option value="FGM">FGM (Field Goals Made)</option>
+                    <option value="FTA">FTA (Free Throw Attempts)</option>
+                    <option value="FTM">FTM (Free Throws Made)</option>
+                    <option value="FG3A">FG3A (3-Point Attempts)</option>
+                    <option value="FG3M">FG3M (3-Pointers Made)</option>
+                    <option value="PTS">PTS (Points)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="outcome">Outcome:</label>
+                <select id="outcome">
+                    <option value="">Any</option>
+                    <option value="W">Win</option>
+                    <option value="L">Loss</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="location">Location:</label>
+                <select id="location">
+                    <option value="">Any</option>
+                    <option value="Home">Home</option>
+                    <option value="Road">Road</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="period">Period (0 = All):</label>
+                <input type="number" id="period" value="0" min="0" max="4">
+            </div>
+            
+            <div class="control-group">
+                <label for="aheadBehind">Ahead/Behind:</label>
+                <select id="aheadBehind">
+                    <option value="">Any</option>
+                    <option value="Ahead or Behind">Ahead or Behind</option>
+                    <option value="Ahead or Tied">Ahead or Tied</option>
+                    <option value="Behind or Tied">Behind or Tied</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="clutchTime">Clutch Time:</label>
+                <select id="clutchTime">
+                    <option value="">Any</option>
+                    <option value="Last 5 Minutes">Last 5 Minutes</option>
+                    <option value="Last 4 Minutes">Last 4 Minutes</option>
+                    <option value="Last 3 Minutes">Last 3 Minutes</option>
+                    <option value="Last 2 Minutes">Last 2 Minutes</option>
+                    <option value="Last 1 Minute">Last 1 Minute</option>
+                    <option value="Last 30 Seconds">Last 30 Seconds</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="gameSegment">Game Segment:</label>
+                <select id="gameSegment">
+                    <option value="">Any</option>
+                    <option value="First Half">First Half</option>
+                    <option value="Second Half">Second Half</option>
+                    <option value="Overtime">Overtime</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="lastNGames">Last N Games (0 = All):</label>
+                <input type="number" id="lastNGames" value="0" min="0">
+            </div>
+            
+            <div class="control-group">
+                <label for="month">Month (0 = All):</label>
+                <input type="number" id="month" value="0" min="0" max="12">
+            </div>
+            
+            <div class="control-group">
+                <label for="opponentTeamId">Opponent Team ID (0 = All):</label>
+                <input type="text" id="opponentTeamId" value="0">
+            </div>
+            
+            <div class="control-group">
+                <label for="dateFrom">Date From:</label>
+                <input type="text" id="dateFrom" placeholder="MM/DD/YYYY">
+            </div>
+            
+            <div class="control-group">
+                <label for="dateTo">Date To:</label>
+                <input type="text" id="dateTo" placeholder="MM/DD/YYYY">
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="generate-btn" onclick="generatePlaylist()">Generate Random Playlist</button>
+            <button class="clear-btn" onclick="clearResults()">Clear Results</button>
+            <button class="copy-btn" id="downloadBtn" onclick="downloadAllVideos()" style="display: none; padding: 15px 40px; font-size: 16px;">Download All Videos (ZIP)</button>
+        </div>
+        
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Fetching NBA videos...</p>
+        </div>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        var currentVideos = [];
+        
+        var players = [];
+        var teams = [
+            {id: "1610612737", name: "Atlanta Hawks"},
+            {id: "1610612738", name: "Boston Celtics"},
+            {id: "1610612751", name: "Brooklyn Nets"},
+            {id: "1610612766", name: "Charlotte Hornets"},
+            {id: "1610612741", name: "Chicago Bulls"},
+            {id: "1610612739", name: "Cleveland Cavaliers"},
+            {id: "1610612742", name: "Dallas Mavericks"},
+            {id: "1610612743", name: "Denver Nuggets"},
+            {id: "1610612765", name: "Detroit Pistons"},
+            {id: "1610612744", name: "Golden State Warriors"},
+            {id: "1610612745", name: "Houston Rockets"},
+            {id: "1610612754", name: "Indiana Pacers"},
+            {id: "1610612746", name: "LA Clippers"},
+            {id: "1610612747", name: "Los Angeles Lakers"},
+            {id: "1610612763", name: "Memphis Grizzlies"},
+            {id: "1610612748", name: "Miami Heat"},
+            {id: "1610612749", name: "Milwaukee Bucks"},
+            {id: "1610612750", name: "Minnesota Timberwolves"},
+            {id: "1610612740", name: "New Orleans Pelicans"},
+            {id: "1610612752", name: "New York Knicks"},
+            {id: "1610612760", name: "Oklahoma City Thunder"},
+            {id: "1610612753", name: "Orlando Magic"},
+            {id: "1610612755", name: "Philadelphia 76ers"},
+            {id: "1610612756", name: "Phoenix Suns"},
+            {id: "1610612757", name: "Portland Trail Blazers"},
+            {id: "1610612758", name: "Sacramento Kings"},
+            {id: "1610612759", name: "San Antonio Spurs"},
+            {id: "1610612761", name: "Toronto Raptors"},
+            {id: "1610612762", name: "Utah Jazz"},
+            {id: "1610612764", name: "Washington Wizards"}
+        ];
+
+        window.addEventListener('load', function() {
+            document.getElementById('playerSearch').addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase();
+                const results = document.getElementById('playerResults');
+            
+            if (query.length < 2) {
+                playerResults.classList.remove('active');
+                return;
+            }
+
+            searchPlayers(query);
+        });
+
+        teamSearchInput.addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            
+            if (query.length < 2) {
+                teamResults.classList.remove('active');
+                return;
+            }
+
+            const filtered = teams.filter(t => t.name.toLowerCase().includes(query));
+            
+            if (filtered.length > 0) {
+                results.innerHTML = filtered.map(t => 
+                    `<div class="search-result-item" onclick="selectTeam('${t.id}', '${t.name}')">${t.name}</div>`
+                ).join('');
+                results.classList.add('active');
+            } else {
+                results.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                document.querySelectorAll('.search-results').forEach(r => r.classList.remove('active'));
+            }
+        });
+
+        async         function searchPlayers(query) {
+            const results = document.getElementById('playerResults');
+            
+            fetch(`https://stats.nba.com/stats/commonallplayers?IsOnlyCurrentSeason=0&LeagueID=00&Season=2023-24`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Referer': 'https://www.nba.com/',
+                    'Origin': 'https://www.nba.com',
+                    'x-nba-stats-origin': 'stats',
+                    'x-nba-stats-token': 'true'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                }
+                throw new Error('Failed to fetch');
+            }).then(data => {
+                const playerList = parseResultSet(data.resultSets[0]);
+                
+                const filtered = playerList.filter(p => 
+                    p.DISPLAY_FIRST_LAST && p.DISPLAY_FIRST_LAST.toLowerCase().includes(query)
+                ).slice(0, 10);
+                
+                if (filtered.length > 0) {
+                    results.innerHTML = filtered.map(p => 
+                        `<div class="search-result-item" onclick="selectPlayer('${p.PERSON_ID}', '${p.DISPLAY_FIRST_LAST}')">${p.DISPLAY_FIRST_LAST}</div>`
+                    ).join('');
+                    results.classList.add('active');
+                } else {
+                    results.classList.remove('active');
+                }
+            }).catch(error => {
+                console.log('Player search failed (CORS restriction):', error);
+                results.innerHTML = '<div class="search-result-item" style="color: #999;">Player search unavailable (CORS restriction). Enter Player ID manually.</div>';
+                results.classList.add('active');
+            });
+        }
+
+        function selectPlayer(id, name) {
+            document.getElementById('playerId').value = id;
+            document.getElementById('playerSearch').value = name;
+            document.getElementById('playerResults').classList.remove('active');
+        }
+
+        function selectTeam(id, name) {
+            document.getElementById('teamId').value = id;
+            document.getElementById('teamSearch').value = name;
+            document.getElementById('teamResults').classList.remove('active');
+        }
+
+        function generatePlaylist() {
+            const resultsDiv = document.getElementById('results');
+            const loadingDiv = document.getElementById('loading');
+            const generateBtn = document.querySelector('.generate-btn');
+            
+            resultsDiv.innerHTML = '';
+            loadingDiv.style.display = 'block';
+            generateBtn.disabled = true;
+            
+            try {
+                const params = buildParams();
+                const apiUrl = `https://stats.nba.com/stats/videodetailsasset?${params}`;
+                
+                console.log('API URL:', apiUrl);
+                
+                const response = await             fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Connection': 'keep-alive',
+                    'Host': 'stats.nba.com',
+                    'Referer': 'https://www.nba.com/',
+                    'Origin': 'https://www.nba.com',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'x-nba-stats-origin': 'stats',
+                    'x-nba-stats-token': 'true'
+                },
+                mode: 'cors',
+                credentials: 'omit'
+            }).then(response => {
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+                }
+                return response.json();
+            }).then(data => {
+                if (!data.resultSets || data.resultSets.length < 2) {
+                    throw new Error('Unexpected API response format');
+                }
+                
+                const videoUrls = parseResultSet(data.resultSets[0]);
+                const playlist = parseResultSet(data.resultSets[1]);
+                
+                if (videoUrls.length === 0) {
+                    resultsDiv.innerHTML = '<div class="error">No videos found with the current filters. Try adjusting your parameters.</div>';
+                    loadingDiv.style.display = 'none';
+                    generateBtn.disabled = false;
+                    return;
+                }
+                
+                const playlistSize = parseInt(document.getElementById('playlistSize').value);
+                const randomVideos = getRandomVideos(videoUrls, playlist, playlistSize);
+                
+                currentVideos = randomVideos;
+                displayResults(randomVideos);
+                document.getElementById('downloadBtn').style.display = 'inline-block';
+                
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
+            }).catch(error => {
+                console.error('Full error:', error);
+                resultsDiv.innerHTML = `<div class="error">
+                    <strong>Error:</strong> ${error.message}<br><br>
+                    <strong>Troubleshooting:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>The NBA Stats API has CORS restrictions that prevent direct browser access</li>
+                        <li>This is a known limitation of the stats.nba.com API</li>
+                        <li>To use this in production, you'll need to set up a backend proxy server</li>
+                        <li>Alternatively, use a Python/Node.js environment with the nba_api library</li>
+                    </ul>
+                    <br>
+                    <strong>Generated URL (for reference):</strong><br>
+                    <code style="display: block; margin-top: 10px; padding: 10px; background: #f5f5f5; border-radius: 4px; word-break: break-all; font-size: 12px;">
+                        ${buildApiUrl()}
+                    </code>
+                </div>`;
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
+            });
+        }
+        
+        function buildParams() {
+            const params = new URLSearchParams();
+            
+            const fields = {
+                'AheadBehind': document.getElementById('aheadBehind').value,
+                'ClutchTime': document.getElementById('clutchTime').value,
+                'ContextFilter': '',
+                'ContextMeasure': document.getElementById('contextMeasure').value,
+                'DateFrom': document.getElementById('dateFrom').value,
+                'DateTo': document.getElementById('dateTo').value,
+                'EndPeriod': '',
+                'EndRange': '',
+                'GameID': '',
+                'GameSegment': document.getElementById('gameSegment').value,
+                'LastNGames': document.getElementById('lastNGames').value,
+                'LeagueID': '00',
+                'Location': document.getElementById('location').value,
+                'Month': document.getElementById('month').value,
+                'OpponentTeamID': document.getElementById('opponentTeamId').value,
+                'Outcome': document.getElementById('outcome').value,
+                'Period': document.getElementById('period').value,
+                'PlayerID': document.getElementById('playerId').value,
+                'PointDiff': '',
+                'Position': '',
+                'RangeType': '',
+                'RookieYear': '',
+                'Season': document.getElementById('season').value,
+                'SeasonSegment': '',
+                'SeasonType': document.getElementById('seasonType').value,
+                'StartPeriod': '',
+                'StartRange': '',
+                'TeamID': document.getElementById('teamId').value,
+                'VsConference': '',
+                'VsDivision': ''
+            };
+            
+            for (const [key, value] of Object.entries(fields)) {
+                params.append(key, value);
+            }
+            
+            return params.toString();
+        }
+
+        function buildApiUrl() {
+            return `https://stats.nba.com/stats/videodetailsasset?${buildParams()}`;
+        }
+        
+        function parseResultSet(resultSet) {
+            if (!resultSet.headers || !resultSet.rowSet) return [];
+            
+            const headers = resultSet.headers;
+            return resultSet.rowSet.map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index];
+                });
+                return obj;
+            });
+        }
+        
+        function getRandomVideos(videoUrls, playlist, count) {
+            const combined = videoUrls.map((video, index) => {
+                return {
+                    video: video,
+                    playlist: playlist[index] || {}
+                };
+            });
+            
+            const shuffled = combined.sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, Math.min(count, shuffled.length));
+        }
+        
+        function displayResults(videos) {
+            const resultsDiv = document.getElementById('results');
+            
+            if (videos.length === 0) {
+                resultsDiv.innerHTML = '<div class="error">No videos available.</div>';
+                return;
+            }
+            
+            let html = `<h2 style="color: #1e3c72; margin-bottom: 20px;">Generated Playlist (${videos.length} videos)</h2>`;
+            
+            videos.forEach((item, index) => {
+                const video = item.video;
+                const playlistInfo = item.playlist;
+                
+                html += `
+                    <div class="video-item">
+                        <div class="video-header">
+                            <span class="video-number">Video ${index + 1}</span>
+                        </div>
+                        <div class="video-description">
+                            ${playlistInfo.dsc || 'No description available'}
+                        </div>
+                        <div class="url-group">
+                            <div class="url-label">Small (${video.sdur || 0}s):</div>
+                            <div class="url-box">
+                                <input type="text" class="url-input" value="${video.surl || 'N/A'}" readonly>
+                                <button class="copy-btn" onclick="copyToClipboard('${video.surl}')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="url-group">
+                            <div class="url-label">Medium (${video.mdur || 0}s):</div>
+                            <div class="url-box">
+                                <input type="text" class="url-input" value="${video.murl || 'N/A'}" readonly>
+                                <button class="copy-btn" onclick="copyToClipboard('${video.murl}')">Copy</button>
+                            </div>
+                        </div>
+                        <div class="url-group">
+                            <div class="url-label">Large (${video.ldur || 0}s):</div>
+                            <div class="url-box">
+                                <input type="text" class="url-input" value="${video.lurl || 'N/A'}" readonly>
+                                <button class="copy-btn" onclick="copyToClipboard('${video.lurl}')">Copy</button>
+                            </div>
+                        </div>
+                    </div>
+                
